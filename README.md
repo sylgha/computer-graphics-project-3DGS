@@ -77,9 +77,7 @@ python setup.py install && pip install .
 	- 使用 MeshLab 对重建 mesh 的可视化截图。
 
 - `video/`
-	- SIBR 部分展示视频片段。
-
-示例可视化截图（文件位于 `screenshots/` 中）：
+	- SIBR 部分视频片段。
 
 ```markdown
 ![bird](screenshots/bird_mesh103.png)
