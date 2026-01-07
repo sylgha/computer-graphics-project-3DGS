@@ -79,10 +79,9 @@ python setup.py install && pip install .
 - `video/`
 	- SIBR 部分视频片段。
 
-```markdown
 ![bird](screenshots\bird_mesh103.png)
 ![toy](screenshots\toy_mesh100.png)
-```
+
 
 ## 数据与输出说明
 
