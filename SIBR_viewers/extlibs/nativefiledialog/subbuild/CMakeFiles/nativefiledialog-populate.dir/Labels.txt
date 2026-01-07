@@ -1,0 +1,14 @@
+# Target labels
+ nativefiledialog-populate
+# Source files and their labels
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/CMakeFiles/nativefiledialog-populate
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/CMakeFiles/nativefiledialog-populate.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/CMakeFiles/nativefiledialog-populate-complete.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-build.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-configure.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-download.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-install.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-mkdir.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-patch.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-test.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-update.rule

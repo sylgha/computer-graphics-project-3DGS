@@ -1,0 +1,3 @@
+repository='https://gitlab.inria.fr/sibr/libs/xatlas.git'
+module=''
+tag='origin'

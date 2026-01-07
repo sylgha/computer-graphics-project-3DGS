@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/CMakeFiles/nativefiledialog-populate"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/CMakeFiles/nativefiledialog-populate.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/CMakeFiles/nativefiledialog-populate-complete.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-build.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-configure.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-download.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-install.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-mkdir.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-patch.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-test.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/nativefiledialog/subbuild/nativefiledialog-populate-prefix/src/nativefiledialog-populate-stamp/nativefiledialog-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"nativefiledialog-populate"
+		],
+		"name" : "nativefiledialog-populate"
+	}
+}

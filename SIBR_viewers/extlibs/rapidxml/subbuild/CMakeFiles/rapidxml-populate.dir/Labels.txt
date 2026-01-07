@@ -1,0 +1,14 @@
+# Target labels
+ rapidxml-populate
+# Source files and their labels
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/CMakeFiles/rapidxml-populate
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/CMakeFiles/rapidxml-populate.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/CMakeFiles/rapidxml-populate-complete.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-build.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-configure.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-download.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-install.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-mkdir.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-patch.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-test.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/rapidxml/subbuild/rapidxml-populate-prefix/src/rapidxml-populate-stamp/rapidxml-populate-update.rule

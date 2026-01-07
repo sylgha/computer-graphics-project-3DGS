@@ -1,0 +1,14 @@
+# Target labels
+ xatlas-populate
+# Source files and their labels
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/CMakeFiles/xatlas-populate
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/CMakeFiles/xatlas-populate.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/CMakeFiles/xatlas-populate-complete.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-build.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-configure.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-download.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-install.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-mkdir.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-patch.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-test.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/xatlas/subbuild/xatlas-populate-prefix/src/xatlas-populate-stamp/xatlas-populate-update.rule

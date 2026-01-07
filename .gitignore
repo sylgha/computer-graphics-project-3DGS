@@ -1,0 +1,37 @@
+# ---- Python cache & compiled files ----
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.dll
+
+# ---- Virtual environments ----
+.env
+.venv/
+venv/
+env/
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+
+# ---- OS junk ----
+.DS_Store
+Thumbs.db
+
+# ---- Logs ----
+*.log
+
+# ---- Project-specific large data & outputs ----
+# 原始/中间数据集（建议不上传）
+gaussian_surfels/data/
+
+# 训练、渲染等输出结果（可随时重新生成）
+gaussian_surfels/output/
+
+# Python 缓存目录（保险起见再忽略一遍）
+gaussian_surfels/**/__pycache__/
+
+# ---- SIBR_viewers: build / install 产物 ----
+SIBR_viewers/build/
+SIBR_viewers/install/

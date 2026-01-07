@@ -1,0 +1,14 @@
+# Target labels
+ cudarasterizer-populate
+# Source files and their labels
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/CMakeFiles/cudarasterizer-populate
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/CMakeFiles/cudarasterizer-populate.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/CMakeFiles/cudarasterizer-populate-complete.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-build.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-configure.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-download.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-install.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-mkdir.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-patch.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-test.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/CudaRasterizer/subbuild/cudarasterizer-populate-prefix/src/cudarasterizer-populate-stamp/cudarasterizer-populate-update.rule

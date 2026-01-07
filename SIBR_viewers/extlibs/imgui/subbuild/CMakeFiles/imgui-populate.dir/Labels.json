@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/CMakeFiles/imgui-populate"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/CMakeFiles/imgui-populate.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/CMakeFiles/imgui-populate-complete.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-build.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-configure.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-download.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-install.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-mkdir.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-patch.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-test.rule"
+		},
+		{
+			"file" : "/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/imgui/subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"imgui-populate"
+		],
+		"name" : "imgui-populate"
+	}
+}

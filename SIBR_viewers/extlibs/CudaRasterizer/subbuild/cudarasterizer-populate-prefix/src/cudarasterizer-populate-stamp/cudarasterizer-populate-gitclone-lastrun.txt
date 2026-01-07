@@ -1,0 +1,3 @@
+repository='https://github.com/graphdeco-inria/diff-gaussian-rasterization.git'
+module=''
+tag='origin'

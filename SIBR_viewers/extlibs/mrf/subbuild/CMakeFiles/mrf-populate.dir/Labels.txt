@@ -1,0 +1,14 @@
+# Target labels
+ mrf-populate
+# Source files and their labels
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/CMakeFiles/mrf-populate
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/CMakeFiles/mrf-populate.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/CMakeFiles/mrf-populate-complete.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-build.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-configure.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-download.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-install.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-mkdir.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-patch.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-test.rule
+/root/autodl-tmp/gaussian-splatting/SIBR_viewers/extlibs/mrf/subbuild/mrf-populate-prefix/src/mrf-populate-stamp/mrf-populate-update.rule
