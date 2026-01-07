@@ -1,0 +1,46 @@
+cd /root/autodl-tmp/gaussian_surfels
+conda activate gaussian_surfels
+
+cd /root/autodl-tmp/gaussian_surfels
+
+# 全部视角做 train
+python train.py -s data/gaussian-surfels-dtu-hf/scan105 -m output/scan105
+
+# 1:1 划分 train/test
+python train.py -s data/gaussian-surfels-dtu-hf/scan105 -m output/scan105_half --idr_half_split
+
+cd /root/autodl-tmp/gaussian_surfels
+
+python train.py -s data/gaussian-surfels-dtu-hf/scan106 -m output/scan106
+python train.py -s data/gaussian-surfels-dtu-hf/scan106 -m output/scan106_half --idr_half_split
+
+cd /root/autodl-tmp/gaussian_surfels
+
+python train.py -s data/gaussian-surfels-dtu-hf/scan110 -m output/scan110
+python train.py -s data/gaussian-surfels-dtu-hf/scan110 -m output/scan110_half --idr_half_split
+
+cd /root/autodl-tmp/gaussian_surfels
+
+python train.py -s data/gaussian-surfels-dtu-hf/scan114 -m output/scan114
+python train.py -s data/gaussian-surfels-dtu-hf/scan114 -m output/scan114_half --idr_half_split
+
+cd /root/autodl-tmp/gaussian_surfels
+
+python train.py -s data/gaussian-surfels-dtu-hf/scan118 -m output/scan118
+python train.py -s data/gaussian-surfels-dtu-hf/scan118 -m output/scan118_half --idr_half_split
+
+cd /root/autodl-tmp/gaussian_surfels
+
+# 100 张子集（data/hope_video），全部视角做 train
+python train.py -s data/hope_video/scene_0000 -m output/hope_scene_0000
+
+# 全部帧（data/hope_video_full），全部视角做 train
+python train.py -s data/hope_video_full/scene_0000 -m output/hope_scene_0000_full
+
+cd /root/autodl-tmp/gaussian_surfels
+
+python train.py -s data/hope_video/scene_0001 -m output/hope_scene_0001
+python train.py -s data/hope_video_full/scene_0001 -m output/hope_scene_0001_full
+
+
+./SIBR_gaussianViewer_app -m /root/autodl-tmp/gaussian_surfels/output/scan114_half
