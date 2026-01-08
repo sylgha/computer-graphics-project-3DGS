@@ -1,0 +1,564 @@
+\documentclass[UTF8,a4paper]{ctexart}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{caption}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=blue,
+	urlcolor=blue,
+	citecolor=blue
+}
+
+\lstset{
+	basicstyle=\ttfamily\small,
+	keywordstyle=\color{blue!70!black},
+	commentstyle=\color{gray!70},
+	stringstyle=\color{green!40!black},
+	numbers=left,
+	numberstyle=\tiny\color{gray},
+	stepnumber=1,
+	numbersep=6pt,
+	frame=single,
+	breaklines=true,
+	breakatwhitespace=true,
+	showstringspaces=false,
+	tabsize=2
+}
+
+\title{计算机图形学报告\\基于 Gaussian Surfels 的 3DGS 表面重建与可视化实验}
+\author{09023301\quad 张凯轩}
+\date{2026年1月7日}
+
+\begin{document}
+\maketitle
+
+\section{实验目的与任务概述}
+
+本课程项目以 3DGS 为基础，阅读并尝试运行 2024 年 SIGGRAPH 论文 ``High-quality Surface Reconstruction using Gaussian Surfels'' 提出的 Gaussian Surfels 模型。
+根据项目要求和个人理解，我对本实验的目标与任务设置为：
+
+\begin{enumerate}
+	\item 环境配置与编译：完成 Conda 环境搭建，包含 CUDA 光栅化模块与 SIBR 可视化等组件部分；
+	\item 代码阅读与理解：解释 3DGS 的关键训练/渲染流程，梳理 Gaussian Surfels 相比原 3DGS 的核心的改进；
+	\item 数据集验证与测试：首先在标准 DTU 场景上训练与测试，检查重建效果与论文描述是否一致；
+    随后在 HOPE数据集（桌面物体、存在遮挡）上训练，观察鲁棒性与新视角合成效果
+	\item surfels论文改进使用的损失函数基于法线和深度一致性，类似一种自监督的损失函数，
+    如果我们尝试引入带有一定先验信息的深度值来进行约束，测试训练效果会不会有所提升；
+    实验中可以尝试引入单目深度估计（MDE）模型作为深度先验，
+    增加单一深度信息的损失项并重新训练，对比观察一下训练结果。
+\end{enumerate}
+
+本项目主要基于官方 Gaussian Surfels 实现进行实验与改进，相关链接如下：
+
+Gaussian Surfels 项目主页：
+
+\url{https://turandai.github.io/projects/gaussian_surfels/}
+
+DTU相关格式整理数据集（包含法线信息）：
+
+\url{https://huggingface.co/datasets/turandai/gaussian-surfels-dtu}
+
+自测相关数据集HOPE数据集：
+
+\url{https://github.com/swtyree/hope-dataset}
+
+\section{实验环境与配置}
+
+\subsection{硬件与系统环境}
+
+本项目的训练与可视化均在云服务器上进行，一些性能配置信息如下，可以结合此对实际的训练时间做参考
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+项目 & 配置 \\
+\midrule
+操作系统 & Ubuntu 22.04 \\
+Conda & Miniconda（conda3）\\
+Python & 3.7 \\
+CUDA & 11.6 \\
+GPU & vGPU-32GB（32GB）$\times 1$ \\
+CPU & 12 vCPU Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz \\
+内存 & 72GB \\
+\bottomrule
+\end{tabular}
+\caption{实验环境}
+\end{table}
+
+\subsection{环境创建与编译}
+Conda 环境创建：
+由于云服务器上直接condea安装整个环境sovling速度较慢，实际配置使用pip安装必要的库步步调试下载，具体不再赘述。
+
+重新编译 CUDA 光栅化模块：
+\begin{lstlisting}[language=bash]
+cd gaussian_surfels/submodules/diff-gaussian-rasterization
+python setup.py install
+pip install .
+\end{lstlisting}
+
+SIBR 浏览器的编译与安装依赖 CMake，结合调试及报错信息补充安装必要的库和依赖。
+
+如果想要使用相关环境，可以直接使用课程实验GitHub仓库中或者网盘中的环境压缩包进行解压使用，包含训练以及SIBR等所有必要组件。
+
+
+\section{关键代码与分析}
+
+本节按照数据流动的逻辑，从 Surfel 表示构建、可微渲染、损失优化到最终表面重建，逐步梳理 Gaussian Surfels 的核心技术环节。代码路径均在本仓库中可直接定位。
+
+\subsection{方法总览}
+
+图\ref{fig:overview} 给出了论文的pipeline。左侧为 Gaussian Surfels 表示与初始化（从点云到 surfel），中部对应损失函数，右侧则是 volumetric cutting 与 mesh 重建步骤。
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.8\linewidth]{pipeline.png}
+	\caption{Gaussian Surfels 训练-重建全流程：左侧为 Surfels 表示与初始化，中间为三类损失，右侧为 volumetric cutting 与 mesh}
+	\label{fig:overview}
+\end{figure}
+
+\subsection{Gaussian Surfels 表示与初始化}
+
+在经典 3DGS 中，高斯以位置、协方差（缩放+旋转）、颜色（SH 系数）与不透明度表示。
+Gaussian Surfels 的核心工作是强调使每个高斯的趋近于切平面：通过旋转参数生成法向，
+并在初始化时对某一轴缩放，使其更像面片。
+
+\paragraph{法向表示与提取}
+Gaussian Surfels 将每个高斯的旋转矩阵 $\mathbf{R}_i$ 的第三列定义为该 surfel 的法向：
+$$
+\mathbf{n}_i = \mathbf{R}_i \mathbf{e}_3 = \begin{bmatrix} r_{13} \\ r_{23} \\ r_{33} \end{bmatrix}
+$$
+其中 $\mathbf{e}_3 = [0, 0, 1]^T$ 为局部坐标系的 z 轴。旋转参数既控制高斯的朝向，也可以表示表面法向。
+
+\paragraph{Surfel 初始化：各向异性压扁}
+为使高斯更像薄片状表面元素，初始化时对 z 方向缩放施加极小值：
+$$
+\mathbf{S}_i = \text{diag}(s_x, s_y, s_z - 10^{10})
+$$
+使协方差矩阵在法向方向上几乎退化，将体积高斯压扁为近二维的 surfel。同时，若点云提供初始法向 $\mathbf{n}_0$，通过 \texttt{normal2rotation} 将其转换为旋转四元数，确保 surfel 法向与表面法向对齐。
+
+对应实现在 \texttt{gaussian\_surfels/scene/gaussian\_model.py}：\texttt{get\_normal} 函数通过四元数旋转矩阵的第三列提取法向；\texttt{create\_from\_pcd} 函数在启用 surface 配置时，
+使用点云法向初始化旋转，并通过 \texttt{scales[..., -1] -= 1e10} 压扁 z 方向尺度。
+
+初始化旋转与 z 缩放：
+\begin{lstlisting}[language=Python]
+if self.config[0] > 0:
+		rots = normal2rotation(torch.from_numpy(normals).to(torch.float32)).to("cuda")
+		scales[..., -1] -= 1e10  # squeeze z scaling
+else:
+		rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
+		rots[:, 0] = 1
+\end{lstlisting}
+
+这样的高斯表示可以匹配后续的表面约束损失。
+
+\paragraph{深度与法向的计算}
+初始化后，系统在渲染过程中需要精确计算每个像素的深度与法向，以支持表面约束。Gaussian Surfels 获得更可靠的深度图。如图\ref{fig:depthcalc} 所示，该方法先在图像空间中统一视线方向，再将前景高斯投影到深度平面，从而与 surfel 表示相匹配。
+
+基于渲染的深度图 $D(u,v)$（像素 $(u,v)$ 处的深度值），通过反投影可将像素恢复为世界坐标 3D 点：
+\begin{equation}
+\mathbf{X}(u,v) = D(u,v) \mathbf{K}^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix}
+\end{equation}
+其中 $\mathbf{K} = \begin{bmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}$ 为相机内参矩阵（$f_x, f_y$ 为焦距，$c_x, c_y$ 为主点）。
+
+随后通过有限差分计算深度图的梯度，推导每个像素处的曲面法向：
+\begin{equation}
+\frac{\partial \mathbf{X}}{\partial u} = D(u,v) \mathbf{K}^{-1} \begin{bmatrix} 1 \\ 0 \\ 0 \end{bmatrix} + \frac{\partial D}{\partial u} \mathbf{K}^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix}
+\end{equation}
+\begin{equation}
+\frac{\partial \mathbf{X}}{\partial v} = D(u,v) \mathbf{K}^{-1} \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix} + \frac{\partial D}{\partial v} \mathbf{K}^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix}
+\end{equation}
+
+法向由偏导数叉积的归一化得到：
+\begin{equation}
+\mathbf{n}_{\text{depth}} = \text{normalize}\left(\frac{\partial \mathbf{X}}{\partial u} \times \frac{\partial \mathbf{X}}{\partial v}\right)
+\end{equation}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\linewidth]{深度计算.png}
+	\caption{更精确的深度/法向计算示意：统一视线后，再由深度平面匹配 surfel 中心}
+	\label{fig:depthcalc}
+\end{figure}
+
+以下为该过程的 Python 实现示例（来自 \texttt{gaussian\_surfels/utils/loss\_utils.py}）：
+\begin{lstlisting}[language=Python]
+def depth2normal(depth, mask, viewpoint_cam):
+    """从深度图计算法向：通过反投影与有限差分"""
+    K = viewpoint_cam.intrinsics  # 内参矩阵
+    H, W = depth.shape
+    
+    # 反投影：将像素坐标 (u,v) 转为相机坐标中的 3D 点
+    u, v = torch.meshgrid(torch.arange(W), torch.arange(H), 
+                           indexing='ij')
+    u, v = u.float(), v.float()
+    ones = torch.ones_like(u)
+    uv1 = torch.stack([u, v, ones], dim=-1)  # [H, W, 3]
+    
+    # K^{-1} @ [u, v, 1]
+    K_inv = torch.linalg.inv(K)
+    points_dir = (uv1 @ K_inv.T).squeeze()  # [H, W, 3]
+    
+    # 世界坐标 X = D * K^{-1} @ [u, v, 1]
+    X = depth.unsqueeze(-1) * points_dir
+    
+    # 有限差分：Sobel 算子计算梯度
+    dX_du = X[:, :-1, :] - X[:, 1:, :]  # 水平梯度
+    dX_dv = X[:-1, :, :] - X[1:, :, :]  # 竖直梯度
+    
+    # 补齐边界，使尺寸对齐
+    dX_du = torch.cat([dX_du, dX_du[:, -1:, :]], dim=1)
+    dX_dv = torch.cat([dX_dv, dX_dv[-1:, :, :]], dim=0)
+    
+    # 叉积：法向 = (∂X/∂u) × (∂X/∂v)
+    normal = torch.cross(dX_du, dX_dv, dim=-1)
+    normal = torch.nn.functional.normalize(normal, dim=-1)
+    
+    return normal * mask.unsqueeze(-1)
+\end{lstlisting}
+
+这个过程无需真实标注的法向数据，而是基于渲染深度信息，指导 surfel 的优化方向。
+
+\subsection{可微渲染}
+
+基于 Surfel 表示，渲染管线仍采用 3DGS 的 $\alpha$-blending 框架，但输出额外包含法向与深度信息用于几何监督。
+
+\paragraph{3DGS 渲染}
+3D Gaussian Splatting 将场景表示为一组 3D 高斯函数的集合。每个高斯 $\mathcal{G}_i$ 的参数定义为：位置（均值）$\boldsymbol{\mu}_i \in \mathbb{R}^3$，协方差矩阵 $\boldsymbol{\Sigma}_i = \mathbf{R}_i \mathbf{S}_i \mathbf{S}_i^T \mathbf{R}_i^T$（其中 $\mathbf{R}_i$ 为旋转矩阵由四元数参数化，$\mathbf{S}_i$ 为缩放矩阵），球谐函数系数 $\mathbf{c}_i$ 用于表示视角相关颜色，以及不透明度 $\alpha_i \in [0,1]$。
+
+渲染时，对于像素 $\mathbf{p}$，颜色由沿视线的高斯按深度排序后进行 $\alpha$-blending，其数学表达为：
+\begin{equation}
+C(\mathbf{p}) = \sum_{i \in \mathcal{N}} c_i \alpha_i' \prod_{j=1}^{i-1} (1 - \alpha_j')
+\end{equation}
+其中加权不透明度定义为：
+\begin{equation}
+\alpha_i' = \alpha_i \exp\left(-\frac{1}{2}(\mathbf{x}_i - \boldsymbol{\mu}_i)^T \boldsymbol{\Sigma}_i^{-1} (\mathbf{x}_i - \boldsymbol{\mu}_i)\right)
+\end{equation}
+而颜色 $c_i$ 由球谐函数根据视角方向计算得到。
+
+\paragraph{渲染输出与监督}
+Gaussian Surfels 在渲染时不仅输出 RGB 图像，还同时输出法向图、深度图与不透明度图，用于几何监督，为后续的表面一致性约束提供了基础：
+
+\begin{lstlisting}[language=Python]
+render_pkg = render(viewpoint_cam, gaussians, pipe, background, patch_size)
+image, normal, depth, opac = (
+		render_pkg["render"], render_pkg["normal"],
+		render_pkg["depth"],  render_pkg["opac"]
+)
+\end{lstlisting}
+
+\subsection{损失函数与监督}
+
+损失函数实现主要位于 \texttt{gaussian\_surfels/utils/loss\_utils.py} 与 \texttt{gaussian\_surfels/train.py}。完整损失函数为多项加权和：
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{\text{RGB}} + \lambda_{\text{mask}} \mathcal{L}_{\text{mask}} + \lambda_{\text{surf}}(t) \mathcal{L}_{\text{surf}} + \lambda_{\text{opac}} \mathcal{L}_{\text{opac}} + \lambda_{\text{curv}} \mathcal{L}_{\text{curv}}
+\end{equation}
+其中表面约束权重随训练逐步增强，定义为 $\lambda_{\text{surf}}(t) = 0.01 + 0.1 \cdot \min(2t/T, 1)$ 。
+
+\paragraph{(1) 颜色重建：L1 + DSSIM}
+颜色监督采用 L1 范数与结构相似性（SSIM）的加权组合：
+\begin{equation}
+\mathcal{L}_{\text{RGB}} = (1 - \lambda_{\text{dssim}}) \lVert I - \hat{I}\rVert_1 + \lambda_{\text{dssim}} (1 - \text{SSIM}(I, \hat{I}))
+\end{equation}
+其中 $I$ 为真实图像，$\hat{I}$ 为渲染图像。
+\begin{lstlisting}[language=Python]
+Ll1 = l1_loss(image, gt_image)
+loss_rgb = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+\end{lstlisting}
+
+\paragraph{(2) 表面约束：深度-法向一致性}
+Gaussian Surfels 的核心创新在于自监督的表面一致性约束。基于第 3.2 节介绍的深度与法向计算方式，我们用余弦距离约束渲染法向 $\mathbf{n}_{\text{render}}$ 与深度推导的法向 $\mathbf{n}_{\text{depth}}$ 一致：
+\begin{equation}
+\mathcal{L}_{\text{surf}} = 1 - \frac{1}{|\Omega|} \sum_{\mathbf{p} \in \Omega} \mathbf{n}_{\text{render}}(\mathbf{p}) \cdot \mathbf{n}_{\text{depth}}(\mathbf{p})
+\end{equation}
+其中 $\Omega$ 为有效像素区域（mask）。这种自监督约束无需真实法向标注，即可促使高斯形成连续光滑的表面。图\ref{fig:consistency}展示了 surfel 分布、深度中心位置、法向方向以及深度-法向一致性的三种情况对比，其中只有当三者都正确时才能形成高质量的表面重建。
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.8\linewidth]{深度法线一致性损失.png}
+	\caption{Surfel 深度-法向一致性对比：(a) 正确情况，(b) 法向错误，(c) 深度错误}
+	\label{fig:consistency}
+\end{figure}
+\begin{lstlisting}[language=Python]
+normal = torch.nn.functional.normalize(normal, dim=0) * mask_vis
+d2n = depth2normal(depth, mask_vis, viewpoint_cam)
+loss_surface = cos_loss(normal, d2n)
+\end{lstlisting}
+
+\paragraph{(3) 可选单目先验：法向}
+当提供单目法向预测（如 normal prior）且对应权重非零时，训练会额外引入以下监督项：
+\begin{equation}
+\mathcal{L}_{\text{monoN}} = \lVert\mathbf{n}_{\text{render}} - \mathbf{n}_{\text{mono}}\rVert_2
+\end{equation}
+这些先验信息主要目的是提升几何稳定性，特别是在纹理弱或存在高光等区域，缓解不确定性。
+
+\paragraph{(4) opacity 与曲率}
+不透明度正则项抑制高斯过度透明或堆积漂浮：
+\begin{equation}
+\mathcal{L}_{\text{opac}} = \sum_i \alpha_i (1 - \alpha_i)
+\end{equation}
+该项在 $\alpha_i = 0.5$ 时达到最大惩罚，促使高斯向完全透明或完全不透明状态收敛。曲率正则项通过惩罚相邻 surfel 法向差异来平滑表面：
+\begin{equation}
+\mathcal{L}_{\text{curv}} = \sum_{i,j \in \mathcal{N}(i)} \lVert\mathbf{n}_i - \mathbf{n}_j\rVert_2
+\end{equation}
+
+\subsection{训练策略}
+
+训练入口位于 \texttt{gaussian\_surfels/train.py} 的 \texttt{training(...)}。其核心流程是：
+\begin{enumerate}
+	\item 随机采样一个相机视角；
+	\item 调用可微渲染器得到彩色图、法向、深度与不透明度等；
+	\item 计算多项损失并反向传播；
+	\item 更新高斯参数，同时执行 densify/prune 等调整。
+\end{enumerate}
+
+主要损失项的组合：
+\begin{lstlisting}[language=Python]
+Ll1 = l1_loss(image, gt_image)
+loss_rgb = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
+loss_surface = cos_loss(normal, d2n)
+loss = 1.0 * loss_rgb + 0.1 * loss_mask
+loss += (0.01 + 0.1 * min(2 * iteration / opt.iterations, 1)) * loss_surface
+\end{lstlisting}
+
+\subsection{Mesh 重建与后处理：Poisson + 清理 + 平滑}
+
+本项目的 mesh 生成在渲染脚本中完成：\texttt{gaussian\_surfels/render.py} 在渲染 train 视角时会对可见区域进行点采样与清理，然后调用 \texttt{poisson\_mesh(...)} 执行 Screened Poisson 重建。
+
+\paragraph{(1) 从训练视角采样点云}
+渲染 train 集时，通过深度与法向进行采样并做 occupancy grid prune，聚合得到用于重建的点云。
+
+\paragraph{(2) Screened Poisson 与网格清理}
+	\texttt{gaussian\_surfels/utils/general\_utils.py} 中的 \texttt{poisson\_mesh} 关键流程包括：
+\begin{enumerate}
+	\item Screened Poisson 重建（输出 \texttt{\_plain.ply}）；
+	\item 通过 KNN 估计顶点颜色和到采样点的距离；
+	\item 基于阈值剔除离群点/面，并尝试补洞；
+	\item Laplacian 平滑，生成 \texttt{\_pruned.ply}。
+\end{enumerate}
+
+核心片段：
+\begin{lstlisting}[language=Python]
+ms.generate_surface_reconstruction_screened_poisson(depth=depth, preclean=True, samplespernode=1.5)
+ms.save_current_mesh(path + '_plain.ply')
+
+ms.compute_selection_by_condition_per_vertex(condselect=f"q>{thrsh}")
+ms.meshing_remove_selected_vertices()
+ms.meshing_close_holes(maxholesize=300)
+ms.apply_coord_laplacian_smoothing(stepsmoothnum=3, boundary=True)
+ms.save_current_mesh(path + '_pruned.ply')
+\end{lstlisting}
+
+本实验 Poisson 重建耗时很长（具体的底层计算我不太清楚），因此本项目仅在少量 DTU 场景的训练结果上进行了 mesh 测试；HOPE 场景也仅进行了训练与渲染展示。
+
+图\ref{fig:alpha_cut} 用来解释 volumetric cutting ：alpha 混合导致的前景/背景交叉会直接体现在深度曲线上，通过 cut 操作可以去除漂浮的错误高斯并获得干净的深度带入 Poisson。
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\linewidth]{alpha混合可能导致的深度问题.png}
+	\caption{Volumetric cutting：处理 $\alpha$ 混合导致的深度错误}
+	\label{fig:alpha_cut}
+\end{figure}
+
+\section{改动与结果分析}
+
+\subsection{改动}
+
+SIBR 可视化与相关输出精细化；
+
+\textbf{引入深度先验损失}：原始 Gaussian Surfels 仅包含法向先验监督，本项目额外引入了单目深度先验（如 DA3 depth）的 L1 损失项：
+	\begin{equation}
+	\mathcal{L}_{\text{depth}} = \lVert D_{\text{render}} - D_{\text{mono}}\rVert_1
+	\end{equation}
+    需要注意的是，源代码中作者也提供了使用深度先验约束的注释，作者在工作中应该也可能尝试了这种方法，但并未在论文中讨论。
+	实验中引入该损失项进行了少部分场景的训练测试，结果并未显著提升，具体分析见后文。
+
+
+
+\subsection{实验设置：DTU 与 HOPE 数据集}
+
+\paragraph{DTU}
+
+DTU 数据集选取若干场景进行训练，分别尝试：
+
+全部视角训练；
+
+1:1 half split（通过 \texttt{--idr\_half\_split} 划分 train/test）。
+
+
+\paragraph{HOPE}
+
+HOPE 数据集选取两个 scene 进行全部训练（子集与 full 版本，子集包含100张图片，full包含全部300张左右帧图像），
+并在 SIBR 中进行渲染效果展示。
+
+\subsection{结果与现象分析}
+\subsubsection{DTU：全部训练 vs 1:1 half split}
+
+\paragraph{场景与训练方式}
+DTU 部分训练了以下场景：\texttt{scan105, scan106, scan110, scan114, scan118}，并对其中部分场景进行了 half split（\texttt{--idr\_half\_split}）：\texttt{scan105\_half, scan106\_half, scan110\_half, scan114\_half, scan118\_half}。
+
+\paragraph{训练时间与指标}
+训练耗时与质量指标统计如表 \ref{tab:dtu_results}。
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+场景 & 模式 & 训练时间（分钟） & 训练 PSNR & 测试 PSNR \\
+\midrule
+scan105 & 全部 & 22.14 & 34.48 & NaN \\
+scan105\_half & half split & 22.67 & 34.20 & 30.31 \\
+scan106 & 全部 & 22.71 & 35.80 & NaN \\
+scan106\_half & half split & 23.98 & 35.42 & 31.61 \\
+scan110 & 全部 & 24.02 & 32.91 & NaN \\
+scan110\_half & half split & 24.70 & 32.52 & 29.96 \\
+scan114 & 全部 & 24.02 & 31.75 & NaN \\
+scan114\_half & half split & 24.47 & 31.54 & 27.02 \\
+scan118 & 全部 & 24.16 & 35.62 & NaN \\
+scan118\_half & half split & 15.55 & 35.36 & 31.88 \\
+\bottomrule
+\end{tabular}
+\caption{DTU 场景训练结果统计（全部视角训练 vs 1:1 half split）}
+\label{tab:dtu_results}
+\end{table}
+
+\paragraph{现象分析}
+综合表 \ref{tab:dtu_results} 的结果，本项目在 DTU 上的结论是：
+\begin{itemize}
+	\item 训练时间相对稳定，大多场景在 22--25 分钟范围内；scan118\_half 的耗时偏低（15.55 分钟）可能与有效训练视角规模不同或运行条件变化有关；
+	\item half split 配置更能量化训练与测试视角分离下的泛化能力，测试 PSNR 通常低于训练 PSNR 约 3--5 dB，差距合理；
+	\item 不同场景 PSNR 差异显著（如 scan114\_half 的测试 PSNR 相对较低），这与场景材质、几何复杂度以及可见性有关；
+	\item 全部训练配置下的测试 PSNR 为 NaN 表明该配置的测试集评测流程未启用，但不影响训练与渲染本身。
+\end{itemize}
+
+\subsubsection{DTU：Mesh 重建与后处理}
+
+由于 Poisson mesh 重建与后处理耗时较长，本项目仅对 3 个 DTU 输出进行了 mesh 测试，且均生成了 \texttt{poisson\_mesh\_8\_plain.ply} 与 \texttt{poisson\_mesh\_8\_pruned.ply}：
+\begin{itemize}
+	\item \texttt{scan105}（全部训练输出）；
+	\item \texttt{scan105\_half}（1:1 half split 输出）；
+	\item \texttt{scan106}（全部训练输出）。
+\end{itemize}
+
+mesh 后处理流程由 \texttt{poisson\_mesh} 完成：先 Screened Poisson 重建输出 plain，再按 ``顶点质量''（到采样点的距离）剔除离群点、补洞并做 Laplacian 平滑，得到 pruned。实践中可观察到：plain 更容易出现离群面/孔洞；pruned 更利于展示但可能过度裁剪。
+
+\subsubsection{HOPE：训练结果统计}
+
+HOPE 部分训练了两个场景（scene\_0000、scene\_0001），分别包含子集与 full 版本；另外还在 scene\_0000 上训练了引入深度先验的两个变体。表 \ref{tab:hope_results} 统计了相关结果：
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+场景 & 配置 & 训练时间（分钟） & 训练 PSNR \\
+\midrule
+hope\_scene\_0000 & baseline & 13.49 & 24.58 \\
+hope\_scene\_0000\_full & baseline & 14.87 & 22.62 \\
+hope\_scene\_0001 & baseline & 13.35 & 25.34 \\
+hope\_scene\_0001\_full & baseline & 13.57 & 21.87 \\
+hope\_scene\_0000\_metric & 深度先验 & 8.12 & 23.80 \\
+hope\_scene\_0000\_rel & 深度先验 & 8.26 & 23.50 \\
+\bottomrule
+\end{tabular}
+\caption{HOPE 场景训练结果统计（baseline vs 深度先验配置）}
+\label{tab:hope_results}
+\end{table}
+
+\paragraph{观察与分析}
+表 \ref{tab:hope_results} 显示：
+\begin{itemize}
+	\item HOPE 的训练 PSNR（21--25 范围）相比 DTU（27--36 范围）明显偏低，与场景中存在的遮挡、纹理/光照变化以及视角更稀疏等因素有关；
+	\item full 版本通常较子集版本难度更高（耗时略长，PSNR 略低），表明更多帧数并未显著提升效果；
+	\item 深度先验配置在 HOPE 上表现出明显的加速效果（约 40\% 加速），但 PSNR 略有下降（0.8--1.1 dB），具体分析见第 4.5 小节。
+\end{itemize}
+
+本项目主要通过 SIBR 浏览器对新视角合成做了定性观察，并录制了部分展示视频。
+
+\subsubsection{深度先验实验对比}
+
+本项目在三个场景上验证了引入深度先验损失的效果。表 \ref{tab:depth_prior_comparison} 统计了深度先验版本与对应基线的对比结果：
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccc}
+\toprule
+场景 & 配置 & 训练时间（分钟） & 训练 PSNR & PSNR 差值（dB） \\
+\midrule
+scan105 & baseline & 22.14 & 34.48 & --- \\
+scan105\_da3depth & 深度先验 & 22.14 & 34.50 & +0.02 \\
+\midrule
+hope\_scene\_0000 & baseline & 13.49 & 24.58 & --- \\
+hope\_scene\_0000\_metric & 深度先验 & 8.12 & 23.80 & $-$0.78 \\
+hope\_scene\_0000\_rel & 深度先验 & 8.26 & 23.50 & $-$1.08 \\
+\bottomrule
+\end{tabular}
+\caption{深度先验实验对比：baseline vs 深度先验配置}
+\label{tab:depth_prior_comparison}
+\end{table}
+
+\paragraph{现象与分析}
+表 \ref{tab:depth_prior_comparison} 及相关观察显示，深度先验的引入在三个方面表现出有趣的特性：
+\begin{enumerate}
+	\item \textbf{训练时间}：
+	\begin{itemize}
+		\item DTU 场景（scan105）：深度先验版本耗时相近，无显著差异；
+		\item HOPE 场景：深度先验版本耗时显著缩短（约 39--40\% 加速），表明强化的几何约束加快了高斯的收敛与形状规则化。
+	\end{itemize}
+	\item \textbf{PSNR 指标}：
+	\begin{itemize}
+		\item DTU 场景（scan105）：PSNR 几乎无差异（仅 +0.02 dB），表明深度先验对于视角充分的合成数据影响有限；
+		\item HOPE 场景：PSNR 下降 0.8--1.1 dB，可能原因包括：
+		\begin{itemize}
+			\item 单目深度估计本身存在噪声与尺度歧义，当权重过大时约束过度；
+			\item 对纹理丰富、遮挡复杂的真实场景，过强的几何约束损害了 RGB 渲染精度。
+		\end{itemize}
+	\end{itemize}
+	\item \textbf{几何质量}：定性观察中，深度先验版本的法向图分布更规则、点云更紧凑，表明几何结构确实被强化，但代价是 RGB 重建精度下降；
+	\item \textbf{权重调整建议}：后续工作应尝试动态衰减权重或自适应平衡，以在保持几何质量的同时维持 RGB 精度。
+\end{enumerate}
+
+总体而言，深度先验在加快几何收敛方面有一定帮助，但对最终的 RGB 重建精度影响有限甚至产生负面效应。这与论文作者未在最终版本中采用深度先验的设计决策是一致的。
+
+\paragraph{结果截图）}
+\texttt{screenshots/} 目录中保留了若干 MeshLab 截图示例。
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.5\linewidth]{../screenshots/bird_mesh103.png}
+	\caption{MeshLab 可视化截图示例（占位）}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.5\linewidth]{../screenshots/toy_mesh100.png}
+	\caption{MeshLab 可视化截图示例（占位）}
+\end{figure}
+
+\section{总结}
+
+本课程项目完成了 Gaussian Surfels 项目的代码阅读、复现与扩展实验。主要工作包括：
+\begin{enumerate}
+	\item 梳理了 Gaussian Surfels 的核心技术，包括 surfel 化表示、可微渲染管线、自监督表面约束等；
+	\item 在 DTU（标准合成场景）与 HOPE（真实物体数据集）上完成训练与可视化，验证了论文方法的有效性，对比了全量训练与 1:1 half split 两种设置；
+	\item 对部分 DTU 场景进行了 Poisson mesh 重建与后处理，展示了表面重建的几何质量；
+	\item 引入深度先验损失进行了额外验证，发现其在加快几何收敛的同时可能牺牲 RGB 精度，为后续改进提供了实验基础与设计启示。
+\end{enumerate}
+
+通过这些工作，本项目不仅加深了对 Gaussian Surfels 方法的理解，也验证了自监督几何约束在神经渲染中的有效性，为后续的论文改进、算法优化与工程应用奠定了坚实基础。
+
+\section*{链接}
+
+课程实验GitHub 仓库：\url{https://github.com/sylgha/computer-graphics-project-3DGS}
+
+完整项目文件（包含 data、output等）：\url{https://pan.quark.cn/s/f81a73635991}，提取码：KHCA
+
+
+\end{document}
