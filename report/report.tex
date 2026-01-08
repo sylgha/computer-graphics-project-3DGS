@@ -329,7 +329,7 @@ loss = 1.0 * loss_rgb + 0.1 * loss_mask
 loss += (0.01 + 0.1 * min(2 * iteration / opt.iterations, 1)) * loss_surface
 \end{lstlisting}
 
-\subsection{Mesh 重建与后处理：Poisson + 清理 + 平滑}
+\subsection{Mesh 重建与后处理}
 
 本项目的 mesh 生成在渲染脚本中完成：\texttt{gaussian\_surfels/render.py} 在渲染 train 视角时会对可见区域进行点采样与清理，然后调用 \texttt{poisson\_mesh(...)} 执行 Screened Poisson 重建。
 
@@ -400,6 +400,10 @@ HOPE 数据集选取两个 scene 进行全部训练（子集与 full 版本，�
 并在 SIBR 中进行渲染效果展示。
 
 \subsection{结果与现象分析}
+
+注意，SIBR 可视化的视频均在videos/目录下，可以直接查看，但关于加入了深度先验的训练点云并没有拍摄保存。
+此外本节仅统计训练时间与 PSNR 等指标，关于倒角距离参数由于DTU的原始GROUND TRUTH没有获取，且mesh计算时间很长，故没有进行计算。
+
 \subsubsection{DTU：全部训练 vs 1:1 half split}
 
 \paragraph{场景与训练方式}
@@ -431,24 +435,19 @@ scan118\_half & half split & 15.55 & 35.36 & 31.88 \\
 \end{table}
 
 \paragraph{现象分析}
-综合表 \ref{tab:dtu_results} 的结果，本项目在 DTU 上的结论是：
-\begin{itemize}
-	\item 训练时间相对稳定，大多场景在 22--25 分钟范围内；scan118\_half 的耗时偏低（15.55 分钟）可能与有效训练视角规模不同或运行条件变化有关；
-	\item half split 配置更能量化训练与测试视角分离下的泛化能力，测试 PSNR 通常低于训练 PSNR 约 3--5 dB，差距合理；
-	\item 不同场景 PSNR 差异显著（如 scan114\_half 的测试 PSNR 相对较低），这与场景材质、几何复杂度以及可见性有关；
-	\item 全部训练配置下的测试 PSNR 为 NaN 表明该配置的测试集评测流程未启用，但不影响训练与渲染本身。
-\end{itemize}
+综合表 \ref{tab:dtu_results} 的结果，以及论文中原作者的分析：实验中实际的训练时常
+相对作者报告的有增加，可能与硬件差异及环境配置有关，具体原因没有深究。但是DTU数据集各个场景
+的训练时间相对一致，PSNR指标也在合理范围内，与论文描述30左右基本一致。
 
 \subsubsection{DTU：Mesh 重建与后处理}
 
 由于 Poisson mesh 重建与后处理耗时较长，本项目仅对 3 个 DTU 输出进行了 mesh 测试，且均生成了 \texttt{poisson\_mesh\_8\_plain.ply} 与 \texttt{poisson\_mesh\_8\_pruned.ply}：
-\begin{itemize}
-	\item \texttt{scan105}（全部训练输出）；
-	\item \texttt{scan105\_half}（1:1 half split 输出）；
-	\item \texttt{scan106}（全部训练输出）。
-\end{itemize}
 
-mesh 后处理流程由 \texttt{poisson\_mesh} 完成：先 Screened Poisson 重建输出 plain，再按 ``顶点质量''（到采样点的距离）剔除离群点、补洞并做 Laplacian 平滑，得到 pruned。实践中可观察到：plain 更容易出现离群面/孔洞；pruned 更利于展示但可能过度裁剪。
+\texttt{scan105}（全部训练输出）；
+\texttt{scan105\_half}（1:1 half split 输出）；
+\texttt{scan106}（全部训练输出）。
+
+mesh 后处理流程由 \texttt{poisson\_mesh} 完成，详细的效果图在后面部分体现。
 
 \subsubsection{HOPE：训练结果统计}
 
@@ -468,23 +467,19 @@ hope\_scene\_0000\_metric & 深度先验 & 8.12 & 23.80 \\
 hope\_scene\_0000\_rel & 深度先验 & 8.26 & 23.50 \\
 \bottomrule
 \end{tabular}
-\caption{HOPE 场景训练结果统计（baseline vs 深度先验配置）}
+\caption{HOPE 场景训练结果统计}
 \label{tab:hope_results}
 \end{table}
 
 \paragraph{观察与分析}
 表 \ref{tab:hope_results} 显示：
-\begin{itemize}
-	\item HOPE 的训练 PSNR（21--25 范围）相比 DTU（27--36 范围）明显偏低，与场景中存在的遮挡、纹理/光照变化以及视角更稀疏等因素有关；
-	\item full 版本通常较子集版本难度更高（耗时略长，PSNR 略低），表明更多帧数并未显著提升效果；
-	\item 深度先验配置在 HOPE 上表现出明显的加速效果（约 40\% 加速），但 PSNR 略有下降（0.8--1.1 dB），具体分析见第 4.5 小节。
-\end{itemize}
-
-本项目主要通过 SIBR 浏览器对新视角合成做了定性观察，并录制了部分展示视频。
+HOPE 的训练 PSNR相比 DTU明显偏低，应该与场景中存在的遮挡、视角稀疏、以及没有设置掩膜前景提取等因素有关；
+full 通常较子集难度更高（耗时略长，PSNR 略低），可能原因是引入更多的视角使得训练更复杂不稳定，产生噪声或floaters更多；
+深度先验配置在 HOPE 上表现出明显的加速效果，但有可能是因为平台的算力调度有问题，前面提到的训练时间的较大差异也可能是由于某些不确定因素，这里不做具体解释探讨。
 
 \subsubsection{深度先验实验对比}
 
-本项目在三个场景上验证了引入深度先验损失的效果。表 \ref{tab:depth_prior_comparison} 统计了深度先验版本与对应基线的对比结果：
+本项目在三个场景上验证了引入深度先验损失的效果。表 \ref{tab:depth_prior_comparison} 统计了深度先验与对应原始形式训练的对比结果：
 
 \begin{table}[h]
 \centering
@@ -500,59 +495,67 @@ hope\_scene\_0000\_metric & 深度先验 & 8.12 & 23.80 & $-$0.78 \\
 hope\_scene\_0000\_rel & 深度先验 & 8.26 & 23.50 & $-$1.08 \\
 \bottomrule
 \end{tabular}
-\caption{深度先验实验对比：baseline vs 深度先验配置}
+\caption{深度先验实验对比}
 \label{tab:depth_prior_comparison}
 \end{table}
 
 \paragraph{现象与分析}
-表 \ref{tab:depth_prior_comparison} 及相关观察显示，深度先验的引入在三个方面表现出有趣的特性：
+表 \ref{tab:depth_prior_comparison} 及相关观察显示：
 \begin{enumerate}
-	\item \textbf{训练时间}：
-	\begin{itemize}
-		\item DTU 场景（scan105）：深度先验版本耗时相近，无显著差异；
-		\item HOPE 场景：深度先验版本耗时显著缩短（约 39--40\% 加速），表明强化的几何约束加快了高斯的收敛与形状规则化。
-	\end{itemize}
 	\item \textbf{PSNR 指标}：
 	\begin{itemize}
-		\item DTU 场景（scan105）：PSNR 几乎无差异（仅 +0.02 dB），表明深度先验对于视角充分的合成数据影响有限；
-		\item HOPE 场景：PSNR 下降 0.8--1.1 dB，可能原因包括：
+		\item DTU 场景（scan105）：PSNR 几乎无差异，表明深度先验影响相较有限；
+		\item HOPE 场景：PSNR 下降 ，可能原因包括：
 		\begin{itemize}
-			\item 单目深度估计本身存在噪声与尺度歧义，当权重过大时约束过度；
-			\item 对纹理丰富、遮挡复杂的真实场景，过强的几何约束损害了 RGB 渲染精度。
+			\item 单目深度估计本身存在噪声与尺度歧义，当权重过大时可能会导致约束过度；
+			\item 纹理丰富、遮挡复杂的真实场景，过强的几何约束可能损害了 RGB 渲染精度。
 		\end{itemize}
 	\end{itemize}
-	\item \textbf{几何质量}：定性观察中，深度先验版本的法向图分布更规则、点云更紧凑，表明几何结构确实被强化，但代价是 RGB 重建精度下降；
-	\item \textbf{权重调整建议}：后续工作应尝试动态衰减权重或自适应平衡，以在保持几何质量的同时维持 RGB 精度。
+	\item \textbf{权重调整}：后续工作应尝试类似的动态衰减权重或自适应平衡，以在保持几何质量的同时需要注意维持 RGB 精度。
 \end{enumerate}
 
-总体而言，深度先验在加快几何收敛方面有一定帮助，但对最终的 RGB 重建精度影响有限甚至产生负面效应。这与论文作者未在最终版本中采用深度先验的设计决策是一致的。
+由于无法计算倒角距离等几何指标，无法直接评估深度先验对几何质量的提升，这里只能使用 PSNR 作为参考。
+但从整体结果来看，实验中深度先验对最终的 RGB 重建精度影响有限，这与证明了作者使用的深度-法向一致性约束已经比较有效。
+同时也揭示了一个现象，在3D重建任务中，目前的科研工作往往需要在几何质量与渲染精度之间进行权衡，两者很难做到兼顾，这也为后续的科研工作提供了思路与方向。
 
-\paragraph{结果截图）}
-\texttt{screenshots/} 目录中保留了若干 MeshLab 截图示例。
+\subsection{结果截图}
+\texttt{screenshots/} 目录中保留了 MeshLab 可视化截图示例，包含不同场景的 mesh 重建结果与模型展示。
 
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.5\linewidth]{../screenshots/bird_mesh103.png}
-	\caption{MeshLab 可视化截图示例（占位）}
+	\includegraphics[width=0.4\linewidth]{../screenshots/bird_mesh103.png}
+	\caption{Bird 场景 mesh 重建结果（103）}
 \end{figure}
 
 \begin{figure}[h]
 	\centering
-	\includegraphics[width=0.5\linewidth]{../screenshots/toy_mesh100.png}
-	\caption{MeshLab 可视化截图示例（占位）}
+	\includegraphics[width=0.4\linewidth]{../screenshots/toy_mesh100.png}
+	\caption{Toy 场景 mesh 重建结果（100）}
 \end{figure}
 
-\section{总结}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.4\linewidth]{../screenshots/bird_mesh204.png}
+	\caption{Bird 场景 mesh 重建结果（204）}
+\end{figure}
 
-本课程项目完成了 Gaussian Surfels 项目的代码阅读、复现与扩展实验。主要工作包括：
-\begin{enumerate}
-	\item 梳理了 Gaussian Surfels 的核心技术，包括 surfel 化表示、可微渲染管线、自监督表面约束等；
-	\item 在 DTU（标准合成场景）与 HOPE（真实物体数据集）上完成训练与可视化，验证了论文方法的有效性，对比了全量训练与 1:1 half split 两种设置；
-	\item 对部分 DTU 场景进行了 Poisson mesh 重建与后处理，展示了表面重建的几何质量；
-	\item 引入深度先验损失进行了额外验证，发现其在加快几何收敛的同时可能牺牲 RGB 精度，为后续改进提供了实验基础与设计启示。
-\end{enumerate}
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.4\linewidth]{../screenshots/toy_mesh201.png}
+	\caption{Toy 场景 mesh 重建结果（201）}
+\end{figure}
 
-通过这些工作，本项目不仅加深了对 Gaussian Surfels 方法的理解，也验证了自监督几何约束在神经渲染中的有效性，为后续的论文改进、算法优化与工程应用奠定了坚实基础。
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.4\linewidth]{../screenshots/bird_model00.png}
+	\caption{Bird 场景模型可视化（00）}
+\end{figure}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.4\linewidth]{../screenshots/toy_model103.png}
+	\caption{Toy 场景模型可视化（103）}
+\end{figure}
 
 \section*{链接}
 
